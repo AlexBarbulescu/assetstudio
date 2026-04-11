@@ -229,7 +229,15 @@ namespace AssetStudio
                                     sb.Append($"hw_tier{subProgram.m_ShaderHardwareTier:00} ");
                                 }
                                 sb.Append("\" {\n");
-                                sb.Append(shaderPrograms[i].m_SubPrograms[subProgram.m_BlobIndex].Export());
+                                var subProg = shaderPrograms[i].m_SubPrograms[subProgram.m_BlobIndex];
+                                if (subProg != null)
+                                {
+                                    sb.Append(subProg.Export());
+                                }
+                                else
+                                {
+                                    sb.Append("// shader sub-program data unavailable\n");
+                                }
                                 sb.Append("\n}\n");
                             }
                             break;
@@ -1046,6 +1054,19 @@ namespace AssetStudio
                     case ShaderGpuProgramType.DX9PixelSM20:
                     case ShaderGpuProgramType.DX9PixelSM30:
                         {
+                            if (m_ProgramCode.Length < 8)
+                            {
+                                sb.Append($"// DX9 shader bytecode too small ({m_ProgramCode.Length} bytes)\n");
+                                break;
+                            }
+                            // Validate DX9 shader version token: upper 16 bits must be 0xFFFE (VS) or 0xFFFF (PS)
+                            var versionToken = BitConverter.ToUInt32(m_ProgramCode, 0);
+                            var versionHigh = versionToken >> 16;
+                            if (versionHigh != 0xFFFE && versionHigh != 0xFFFF)
+                            {
+                                sb.Append($"// DX9 shader bytecode has invalid version token 0x{versionToken:X8}, skipping disassembly\n");
+                                break;
+                            }
                             try
                             {
                                 var programCodeSpan = m_ProgramCode.AsSpan();
@@ -1072,6 +1093,11 @@ namespace AssetStudio
                     case ShaderGpuProgramType.DX11HullSM50:
                     case ShaderGpuProgramType.DX11DomainSM50:
                         {
+                            if (m_ProgramCode.Length < 2)
+                            {
+                                sb.Append($"// DX11 shader bytecode too small ({m_ProgramCode.Length} bytes)\n");
+                                break;
+                            }
                             int type = m_ProgramCode[0];
                             int start = 1;
                             if (type > 0)
@@ -1086,7 +1112,27 @@ namespace AssetStudio
                                 }
                             }
 
+                            if (start >= m_ProgramCode.Length)
+                            {
+                                sb.Append($"// DX11 shader bytecode too small for header type {type} (need {start} bytes, have {m_ProgramCode.Length})\n");
+                                break;
+                            }
+
                             var buffSpan = m_ProgramCode.AsSpan(start);
+
+                            if (buffSpan.Length < 4)
+                            {
+                                sb.Append($"// DX11 shader bytecode too small after header ({buffSpan.Length} bytes)\n");
+                                break;
+                            }
+
+                            // Validate DXBC magic header (0x44584243 = "DXBC")
+                            var dxbcMagic = BitConverter.ToUInt32(m_ProgramCode, start);
+                            if (dxbcMagic != 0x43425844)
+                            {
+                                sb.Append($"// DX11 shader bytecode missing DXBC magic (got 0x{dxbcMagic:X8}), skipping decompile/disassembly\n");
+                                break;
+                            }
 
                             sb.Append($"// hash: {ComputeHash64(buffSpan):x8}\n");
                             try

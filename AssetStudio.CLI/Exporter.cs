@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -67,9 +68,17 @@ namespace AssetStudio.CLI
         {
             if (!TryExportFile(exportPath, item, ".shader", out var exportFullPath))
                 return false;
-            var m_Shader = (Shader)item.Asset;
-            var str = m_Shader.Convert();
-            File.WriteAllText(exportFullPath, str);
+            try
+            {
+                var m_Shader = (Shader)item.Asset;
+                var str = m_Shader.Convert();
+                File.WriteAllText(exportFullPath, str);
+            }
+            catch (Exception e)
+            {
+                Logger.Warning($"Failed to export shader {item.Text}: {e.Message}");
+                return false;
+            }
             return true;
         }
 
