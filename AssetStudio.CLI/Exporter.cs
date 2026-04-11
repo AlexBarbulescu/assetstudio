@@ -10,6 +10,10 @@ namespace AssetStudio.CLI
 {
     internal static class Exporter
     {
+        private static readonly object ExportReservationLock = new object();
+        private static readonly HashSet<string> ReservedFilePaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private static readonly HashSet<string> ReservedFolderPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         private static bool ExportSuccess(string exportTarget, string message = null)
         {
             ExportLog.MarkSuccess(exportTarget, message);
@@ -332,19 +336,25 @@ namespace AssetStudio.CLI
         {
             var fileName = FixFileName(item.Text);
             fullPath = Path.Combine(dir, $"{fileName}{extension}");
-            if (!File.Exists(fullPath))
+            Directory.CreateDirectory(dir);
+
+            lock (ExportReservationLock)
             {
-                Directory.CreateDirectory(dir);
-                return true;
-            }
-            if (Properties.Settings.Default.allowDuplicates)
-            {
-                for (int i = 0; ; i++)
+                if (IsAvailableFilePath(fullPath))
                 {
-                    fullPath = Path.Combine(dir, $"{fileName} ({i}){extension}");
-                    if (!File.Exists(fullPath))
+                    ReservedFilePaths.Add(Path.GetFullPath(fullPath));
+                    return true;
+                }
+                if (Properties.Settings.Default.allowDuplicates)
+                {
+                    for (int i = 0; ; i++)
                     {
-                        return true;
+                        fullPath = Path.Combine(dir, $"{fileName} ({i}){extension}");
+                        if (IsAvailableFilePath(fullPath))
+                        {
+                            ReservedFilePaths.Add(Path.GetFullPath(fullPath));
+                            return true;
+                        }
                     }
                 }
             }
@@ -355,22 +365,41 @@ namespace AssetStudio.CLI
         {
             var fileName = FixFileName(item.Text);
             fullPath = Path.Combine(dir, fileName);
-            if (!Directory.Exists(fullPath))
+            Directory.CreateDirectory(dir);
+
+            lock (ExportReservationLock)
             {
-                return true;
-            }
-            if (Properties.Settings.Default.allowDuplicates)
-            {
-                for (int i = 0; ; i++)
+                if (IsAvailableFolderPath(fullPath))
                 {
-                    fullPath = Path.Combine(dir, $"{fileName} ({i})");
-                    if (!Directory.Exists(fullPath))
+                    ReservedFolderPaths.Add(Path.GetFullPath(fullPath));
+                    return true;
+                }
+                if (Properties.Settings.Default.allowDuplicates)
+                {
+                    for (int i = 0; ; i++)
                     {
-                        return true;
+                        fullPath = Path.Combine(dir, $"{fileName} ({i})");
+                        if (IsAvailableFolderPath(fullPath))
+                        {
+                            ReservedFolderPaths.Add(Path.GetFullPath(fullPath));
+                            return true;
+                        }
                     }
                 }
             }
             return ExportSkipped($"Target folder already exists: {fullPath}", fullPath);
+        }
+
+        private static bool IsAvailableFilePath(string fullPath)
+        {
+            var normalizedPath = Path.GetFullPath(fullPath);
+            return !File.Exists(normalizedPath) && !ReservedFilePaths.Contains(normalizedPath);
+        }
+
+        private static bool IsAvailableFolderPath(string fullPath)
+        {
+            var normalizedPath = Path.GetFullPath(fullPath);
+            return !Directory.Exists(normalizedPath) && !ReservedFolderPaths.Contains(normalizedPath);
         }
 
         public static bool ExportAnimationClip(AssetItem item, string exportPath)
