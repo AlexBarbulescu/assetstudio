@@ -152,7 +152,6 @@ namespace AssetStudio.CLI
                             return ExportSuccess(exportFullPath);
                         }
                         return ExportFailure("MiHoYoBinData JSON payload is empty.", exportFullPath);
-                        break;
                     case MiHoYoBinDataType.Bytes:
                         var extension = ".bin";
                         if (Properties.Settings.Default.restoreExtensionName)
@@ -171,7 +170,6 @@ namespace AssetStudio.CLI
                             return ExportSuccess(exportFullPath);
                         }
                         return ExportFailure("MiHoYoBinData byte payload is empty.", exportFullPath);
-                        break;
                 }
             }
             return ExportFailure("Unsupported MiHoYoBinData payload.");
