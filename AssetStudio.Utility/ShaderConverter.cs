@@ -1054,32 +1054,9 @@ namespace AssetStudio
                     case ShaderGpuProgramType.DX9PixelSM20:
                     case ShaderGpuProgramType.DX9PixelSM30:
                         {
-                            if (m_ProgramCode.Length < 8)
-                            {
-                                sb.Append($"// DX9 shader bytecode too small ({m_ProgramCode.Length} bytes)\n");
-                                break;
-                            }
-                            // Validate DX9 shader version token: upper 16 bits must be 0xFFFE (VS) or 0xFFFF (PS)
-                            var versionToken = BitConverter.ToUInt32(m_ProgramCode, 0);
-                            var versionHigh = versionToken >> 16;
-                            if (versionHigh != 0xFFFE && versionHigh != 0xFFFF)
-                            {
-                                sb.Append($"// DX9 shader bytecode has invalid version token 0x{versionToken:X8}, skipping disassembly\n");
-                                break;
-                            }
-                            try
-                            {
-                                var programCodeSpan = m_ProgramCode.AsSpan();
-                                var g = Compiler.Disassemble(programCodeSpan.GetPinnableReference(), programCodeSpan.Length, DisasmFlags.None, "");
-
-                                sb.Append($"// hash: {ComputeHash64(programCodeSpan):x8}\n");
-                                sb.Append(g.AsString());
-                            }
-                            catch (Exception e)
-                            {
-                                sb.Append($"// disassembly error {e.Message}\n");
-                            }
-
+                            var programCodeSpan = m_ProgramCode.AsSpan();
+                            sb.Append($"// hash: {ComputeHash64(programCodeSpan):x8}\n");
+                            sb.Append($"// DX9 binary shader data ({m_ProgramCode.Length} bytes)\n");
                             break;
                         }
                     case ShaderGpuProgramType.DX10Level9Vertex:
@@ -1142,18 +1119,8 @@ namespace AssetStudio
                             }
                             catch (Exception e)
                             {
-                                Logger.Verbose($"Decompile error {e.Message}");
-                                Logger.Verbose($"Attempting to disassemble...");
-
-                                try
-                                {
-                                    var g = Compiler.Disassemble(buffSpan.GetPinnableReference(), buffSpan.Length, DisasmFlags.None, "");
-                                    sb.Append(g.AsString());
-                                }
-                                catch (Exception ex)
-                                {
-                                    sb.Append($"// decompile/disassembly error {ex.Message}\n");
-                                }
+                                sb.Append($"// HLSL decompile failed: {e.Message}\n");
+                                sb.Append($"// DX11 binary shader data ({buffSpan.Length} bytes)\n");
                             }
                             break;
                         }
