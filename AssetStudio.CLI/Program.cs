@@ -15,6 +15,7 @@ namespace AssetStudio.CLI
 
         public static void Run(Options o)
         {
+            var exportLogInitialized = false;
             try
             {
                 var game = GameManager.GetGame(o.GameName);
@@ -123,6 +124,18 @@ namespace AssetStudio.CLI
                 assetsManager.SpecifyUnityVersion = o.UnityVersion;
                 o.Output.Create();
 
+                try
+                {
+                    ExportLog.Initialize(o.Output.FullName);
+                    exportLogInitialized = true;
+                    Logger.Info($"Export results log: {ExportLog.ResultsPath}");
+                    Logger.Info($"Export messages log: {ExportLog.MessagesPath}");
+                }
+                catch (Exception e)
+                {
+                    Logger.Warning($"Failed to initialize export log: {e.Message}");
+                }
+
                 if (o.Key != default)
                 {
                     MiHoYoBinData.Encrypted = true;
@@ -195,6 +208,13 @@ namespace AssetStudio.CLI
             catch (Exception e)
             {
                 Console.WriteLine(e);
+            }
+            finally
+            {
+                if (exportLogInitialized)
+                {
+                    ExportLog.Shutdown();
+                }
             }
         }
     }

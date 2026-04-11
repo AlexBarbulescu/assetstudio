@@ -367,6 +367,9 @@ namespace AssetStudio.CLI
         {
             int toExportCount = toExportAssets.Count;
             int exportedCount = 0;
+            int skippedCount = 0;
+            int failedCount = 0;
+            int errorCount = 0;
             int currentIndex = 0;
 
             var parallelOptions = new ParallelOptions
@@ -411,9 +414,12 @@ namespace AssetStudio.CLI
                 var current = Interlocked.Increment(ref currentIndex);
                 Logger.Info($"[{current}/{toExportCount}] Exporting {asset.TypeString}: {asset.Text}");
 
+                ExportLog.BeginAsset(exportPath);
+                var exported = false;
+                var status = ExportLogStatus.Failed;
+
                 try
                 {
-                    bool exported = false;
                     switch (exportType)
                     {
                         case ExportType.Raw:
@@ -429,23 +435,47 @@ namespace AssetStudio.CLI
                             exported = ExportJSONFile(asset, exportPath);
                             break;
                     }
-
-                    if (exported)
-                    {
-                        Interlocked.Increment(ref exportedCount);
-                    }
                 }
                 catch (Exception ex)
                 {
+                    ExportLog.MarkError(ex);
                     Logger.Error($"Export {asset.Type}:{asset.Text} error\r\n{ex.Message}\r\n{ex.StackTrace}");
+                }
+                finally
+                {
+                    status = ExportLog.Commit(asset, exported);
+                }
+
+                switch (status)
+                {
+                    case ExportLogStatus.Success:
+                        Interlocked.Increment(ref exportedCount);
+                        break;
+                    case ExportLogStatus.Skipped:
+                        Interlocked.Increment(ref skippedCount);
+                        break;
+                    case ExportLogStatus.Failed:
+                        Interlocked.Increment(ref failedCount);
+                        break;
+                    case ExportLogStatus.Error:
+                        Interlocked.Increment(ref errorCount);
+                        break;
                 }
             });
 
             var statusText = exportedCount == 0 ? "Nothing exported." : $"Finished exporting {exportedCount} assets.";
 
-            if (toExportCount > exportedCount)
+            if (skippedCount > 0)
             {
-                statusText += $" {toExportCount - exportedCount} assets skipped (not extractable or files already exist)";
+                statusText += $" {skippedCount} assets skipped.";
+            }
+            if (failedCount > 0)
+            {
+                statusText += $" {failedCount} assets failed.";
+            }
+            if (errorCount > 0)
+            {
+                statusText += $" {errorCount} assets errored.";
             }
 
             Logger.Info(statusText);

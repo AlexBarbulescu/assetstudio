@@ -10,6 +10,8 @@ namespace AssetStudio
     {
         private static bool _fileLogging;
 
+        public static event Action<LoggerEvent, string> MessageLogged;
+
         public static ILogger Default = new DummyLogger();
         public static ILogger File;
 
@@ -60,6 +62,7 @@ namespace AssetStudio
             catch (Exception) { }
             if (FileLogging) File.Log(LoggerEvent.Verbose, message);
             Default.Log(LoggerEvent.Verbose, message);
+            NotifyMessageLogged(LoggerEvent.Verbose, message);
         }
         public static void Debug(string message)
         {
@@ -68,6 +71,7 @@ namespace AssetStudio
 
             if (FileLogging) File.Log(LoggerEvent.Debug, message);
             Default.Log(LoggerEvent.Debug, message);
+            NotifyMessageLogged(LoggerEvent.Debug, message);
         }
         public static void Info(string message)
         {
@@ -76,6 +80,7 @@ namespace AssetStudio
 
             if (FileLogging) File.Log(LoggerEvent.Info, message);
             Default.Log(LoggerEvent.Info, message);
+            NotifyMessageLogged(LoggerEvent.Info, message);
         }
         public static void Warning(string message)
         {
@@ -84,6 +89,7 @@ namespace AssetStudio
 
             if (FileLogging) File.Log(LoggerEvent.Warning, message);
             Default.Log(LoggerEvent.Warning, message);
+            NotifyMessageLogged(LoggerEvent.Warning, message);
         }
         public static void Error(string message)
         {
@@ -92,6 +98,7 @@ namespace AssetStudio
 
             if (FileLogging) File.Log(LoggerEvent.Error, message);
             Default.Log(LoggerEvent.Error, message);
+            NotifyMessageLogged(LoggerEvent.Error, message);
         }
 
         public static void Error(string message, Exception e)
@@ -106,6 +113,18 @@ namespace AssetStudio
             message = sb.ToString();
             if (FileLogging) File.Log(LoggerEvent.Error, message);
             Default.Log(LoggerEvent.Error, message);
+            NotifyMessageLogged(LoggerEvent.Error, message);
+        }
+
+        private static void NotifyMessageLogged(LoggerEvent loggerEvent, string message)
+        {
+            try
+            {
+                MessageLogged?.Invoke(loggerEvent, message);
+            }
+            catch (Exception)
+            {
+            }
         }
     }
 }
