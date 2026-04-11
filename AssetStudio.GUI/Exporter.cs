@@ -548,6 +548,34 @@ namespace AssetStudio.GUI
             return true;
         }
 
+        public static bool ExportSceneFile(SerializedFile assetsFile, string exportPath)
+        {
+            var sceneName = Path.GetFileNameWithoutExtension(
+                !string.IsNullOrEmpty(assetsFile.originalPath) ? assetsFile.originalPath : assetsFile.fileName);
+            var fileName = FixFileName(sceneName);
+            var fullPath = Path.Combine(exportPath, $"{fileName}.unity");
+            if (File.Exists(fullPath))
+            {
+                if (Properties.Settings.Default.allowDuplicates)
+                {
+                    for (int i = 1; i < int.MaxValue; i++)
+                    {
+                        fullPath = Path.Combine(exportPath, $"{fileName} ({i}).unity");
+                        if (!File.Exists(fullPath))
+                            break;
+                    }
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            Directory.CreateDirectory(exportPath);
+            var yaml = SceneExporter.ExportScene(assetsFile);
+            File.WriteAllText(fullPath, yaml);
+            return true;
+        }
+
         public static string FixFileName(string str)
         {
             if (str.Length >= 260) return Path.GetRandomFileName();

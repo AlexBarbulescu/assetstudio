@@ -197,8 +197,21 @@ namespace AssetStudio.CLI
                         assetsManager.LoadFiles(file);
                         if (assetsManager.assetsFileList.Count > 0)
                         {
-                            BuildAssetData(classTypeFilter, o.NameFilter, o.ContainerFilter, ref i);
-                            ExportAssets(o.Output.FullName, exportableAssets, o.GroupAssetsType, o.AssetExportType, o.ImageFormat);
+                            if (o.AssetExportType == ExportType.Scene)
+                            {
+                                foreach (var assetsFile in assetsManager.assetsFileList)
+                                {
+                                    if (SceneExporter.HasSceneObjects(assetsFile))
+                                    {
+                                        Exporter.ExportSceneFile(assetsFile, o.Output.FullName);
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                BuildAssetData(classTypeFilter, o.NameFilter, o.ContainerFilter, ref i);
+                                ExportAssets(o.Output.FullName, exportableAssets, o.GroupAssetsType, o.AssetExportType, o.ImageFormat);
+                            }
                         }
                         exportableAssets.Clear();
                         assetsManager.Clear();

@@ -98,6 +98,7 @@ namespace AssetStudio.GUI
             toolStripMenuItem12 = new System.Windows.Forms.ToolStripMenuItem();
             toolStripMenuItem13 = new System.Windows.Forms.ToolStripMenuItem();
             sceneHierarchy = new System.Windows.Forms.ToolStripMenuItem();
+            exportSceneFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             filterTypeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             allToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             debugMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -490,7 +491,7 @@ namespace AssetStudio.GUI
             // 
             // exportToolStripMenuItem
             // 
-            exportToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { exportAllAssetsMenuItem, exportSelectedAssetsMenuItem, exportFilteredAssetsMenuItem, toolStripSeparator3, exportAnimatorWithSelectedAnimationClipToolStripMenuItem, toolStripSeparator4, toolStripMenuItem2, toolStripMenuItem3, toolStripMenuItem16, toolStripSeparator2, toolStripMenuItem10, sceneHierarchy });
+            exportToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { exportAllAssetsMenuItem, exportSelectedAssetsMenuItem, exportFilteredAssetsMenuItem, toolStripSeparator3, exportAnimatorWithSelectedAnimationClipToolStripMenuItem, toolStripSeparator4, toolStripMenuItem2, toolStripMenuItem3, toolStripMenuItem16, toolStripSeparator2, toolStripMenuItem10, sceneHierarchy, exportSceneFileToolStripMenuItem });
             exportToolStripMenuItem.Name = "exportToolStripMenuItem";
             exportToolStripMenuItem.Size = new System.Drawing.Size(53, 20);
             exportToolStripMenuItem.Text = "Export";
@@ -656,6 +657,13 @@ namespace AssetStudio.GUI
             sceneHierarchy.Size = new System.Drawing.Size(266, 22);
             sceneHierarchy.Text = "Scene hierarchy";
             sceneHierarchy.Click += sceneHierarchy_Click;
+            // 
+            // exportSceneFileToolStripMenuItem
+            // 
+            exportSceneFileToolStripMenuItem.Name = "exportSceneFileToolStripMenuItem";
+            exportSceneFileToolStripMenuItem.Size = new System.Drawing.Size(266, 22);
+            exportSceneFileToolStripMenuItem.Text = "Scene file (.unity)";
+            exportSceneFileToolStripMenuItem.Click += exportSceneFileToolStripMenuItem_Click;
             // 
             // filterTypeToolStripMenuItem
             // 
@@ -1563,6 +1571,7 @@ namespace AssetStudio.GUI
         private System.Windows.Forms.ToolStripMenuItem enableFileLogging;
         private System.Windows.Forms.ToolStripMenuItem loggedEventsMenuItem;
         private System.Windows.Forms.ToolStripMenuItem sceneHierarchy;
+        private System.Windows.Forms.ToolStripMenuItem exportSceneFileToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem assetMapTypeMenuItem;
         private System.Windows.Forms.ToolStripMenuItem loadCABMapToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem allowDuplicates;

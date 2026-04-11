@@ -582,6 +582,33 @@ namespace AssetStudio.CLI
             return ExportSuccess(exportFullPath);
         }
 
+        public static bool ExportSceneFile(SerializedFile assetsFile, string exportPath)
+        {
+            var sceneName = Path.GetFileNameWithoutExtension(
+                !string.IsNullOrEmpty(assetsFile.originalPath) ? assetsFile.originalPath : assetsFile.fileName);
+            var fileName = FixFileName(sceneName);
+            var fullPath = Path.Combine(exportPath, $"{fileName}.unity");
+
+            lock (ExportReservationLock)
+            {
+                if (ReservedFilePaths.Contains(fullPath))
+                {
+                    for (int i = 1; i < int.MaxValue; i++)
+                    {
+                        fullPath = Path.Combine(exportPath, $"{fileName} ({i}).unity");
+                        if (!ReservedFilePaths.Contains(fullPath))
+                            break;
+                    }
+                }
+                ReservedFilePaths.Add(fullPath);
+            }
+
+            Directory.CreateDirectory(exportPath);
+            var yaml = SceneExporter.ExportScene(assetsFile);
+            File.WriteAllText(fullPath, yaml);
+            return ExportSuccess(fullPath, $"Scene exported: {sceneName}");
+        }
+
         public static string FixFileName(string str)
         {
             if (str.Length >= 260) return Path.GetRandomFileName();

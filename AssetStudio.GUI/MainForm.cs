@@ -779,6 +779,58 @@ namespace AssetStudio.GUI
             }
         }
 
+        private void exportSceneFileToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (Studio.assetsManager.assetsFileList.Count == 0)
+            {
+                StatusStripUpdate("No files loaded");
+                return;
+            }
+
+            var saveFolderDialog = new OpenFolderDialog();
+            saveFolderDialog.InitialFolder = saveDirectoryBackup;
+            if (saveFolderDialog.ShowDialog(this) == DialogResult.OK)
+            {
+                saveDirectoryBackup = saveFolderDialog.Folder;
+                var savePath = saveFolderDialog.Folder;
+
+                Task.Run(() =>
+                {
+                    int exported = 0;
+                    int total = 0;
+                    foreach (var assetsFile in Studio.assetsManager.assetsFileList)
+                    {
+                        if (SceneExporter.HasSceneObjects(assetsFile))
+                        {
+                            total++;
+                            if (Exporter.ExportSceneFile(assetsFile, savePath))
+                                exported++;
+                        }
+                    }
+
+                    if (exported > 0)
+                    {
+                        Logger.Info($"Finished exporting {exported} scene(s) to {savePath}");
+                        StatusStripUpdate($"Finished exporting {exported} scene file(s)");
+                        if (Properties.Settings.Default.openAfterExport && exported > 0)
+                        {
+                            Process.Start("explorer.exe", savePath);
+                        }
+                    }
+                    else if (total == 0)
+                    {
+                        Logger.Info("No scene files found in loaded assets");
+                        StatusStripUpdate("No scene files found in loaded assets");
+                    }
+                    else
+                    {
+                        Logger.Info("Scene export failed - files may already exist");
+                        StatusStripUpdate("Scene export completed with errors");
+                    }
+                });
+            }
+        }
+
         private object GetNode(TreeNode treeNode)
         {
             var nodes = new Dictionary<string, object>();
