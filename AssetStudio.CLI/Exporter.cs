@@ -457,7 +457,14 @@ namespace AssetStudio.CLI
                 fbxVersion = Properties.Settings.Default.fbxVersion,
                 fbxFormat = Properties.Settings.Default.fbxFormat
             };
-            ModelExporter.ExportFbx(exportPath, convert, exportOptions);
+            try
+            {
+                ModelExporter.ExportFbx(exportPath, convert, exportOptions);
+            }
+            catch (Exception e)
+            {
+                Logger.Warning($"Failed to export FBX {exportPath}: {e.Message}");
+            }
         }
 
         public static bool ExportDumpFile(AssetItem item, string exportPath)

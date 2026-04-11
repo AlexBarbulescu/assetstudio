@@ -27,7 +27,14 @@ namespace AssetStudio.FbxInterop
 
         ~FbxExporterContext()
         {
-            Dispose(false);
+            try
+            {
+                Dispose(false);
+            }
+            catch
+            {
+                // Suppress exceptions in finalizer to avoid process crash
+            }
         }
 
         public void Dispose()
