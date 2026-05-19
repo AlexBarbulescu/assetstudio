@@ -104,14 +104,24 @@ namespace AssetStudio.GUI
                         var toExportAssets = new List<AssetItem>();
 
                         var file = files[i];
-                        assetsManager.LoadFiles(file);
-                        if (assetsManager.assetsFileList.Count > 0)
+                        try
                         {
-                            BuildAssetData(toExportAssets, entries);
-                            await ExportAssets(saveFolderDialog.Folder, toExportAssets, ExportType.Convert, i == files.Count - 1);
+                            assetsManager.LoadFiles(file);
+                            if (assetsManager.assetsFileList.Count > 0)
+                            {
+                                BuildAssetData(toExportAssets, entries);
+                                await ExportAssets(saveFolderDialog.Folder, toExportAssets, ExportType.Convert, i == files.Count - 1);
+                            }
                         }
-                        toExportAssets.Clear();
-                        assetsManager.Clear();
+                        catch (Exception ex)
+                        {
+                            Logger.Error($"Skipping file {file} after export error\r\n{ex.Message}\r\n{ex.StackTrace}");
+                        }
+                        finally
+                        {
+                            toExportAssets.Clear();
+                            assetsManager.Clear();
+                        }
                     }
                 });
                 StatusStripUpdate = statusStripUpdate;

@@ -545,43 +545,43 @@ namespace AssetStudio.GUI
 
                 Parallel.ForEach(toExportAssets, parallelOptions, asset =>
                 {
-                    string exportPath;
-                    switch ((AssetGroupOption)Properties.Settings.Default.assetGroupOption)
-                    {
-                        case AssetGroupOption.ByType: //type name
-                            exportPath = Path.Combine(savePath, asset.TypeString);
-                            break;
-                        case AssetGroupOption.ByContainer: //container path
-                            if (!string.IsNullOrEmpty(asset.Container))
-                            {
-                                exportPath = Path.HasExtension(asset.Container) ? Path.Combine(savePath, Path.GetDirectoryName(asset.Container)) : Path.Combine(savePath, asset.Container);
-                            }
-                            else
-                            {
-                                exportPath = savePath;
-                            }
-                            break;
-                        case AssetGroupOption.BySource: //source file
-                            if (string.IsNullOrEmpty(asset.SourceFile.originalPath))
-                            {
-                                exportPath = Path.Combine(savePath, asset.SourceFile.fileName + "_export");
-                            }
-                            else
-                            {
-                                exportPath = Path.Combine(savePath, Path.GetFileName(asset.SourceFile.originalPath) + "_export", asset.SourceFile.fileName);
-                            }
-                            break;
-                        default:
-                            exportPath = savePath;
-                            break;
-                    }
-                    exportPath += Path.DirectorySeparatorChar;
-
                     var currentCount = Interlocked.Increment(ref i);
                     StatusStripUpdate($"[{currentCount}/{toExportCount}] Exporting {asset.TypeString}: {asset.Text}");
 
                     try
                     {
+                        string exportPath;
+                        switch ((AssetGroupOption)Properties.Settings.Default.assetGroupOption)
+                        {
+                            case AssetGroupOption.ByType: //type name
+                                exportPath = Path.Combine(savePath, asset.TypeString);
+                                break;
+                            case AssetGroupOption.ByContainer: //container path
+                                if (!string.IsNullOrEmpty(asset.Container))
+                                {
+                                    exportPath = Path.HasExtension(asset.Container) ? Path.Combine(savePath, Path.GetDirectoryName(asset.Container)) : Path.Combine(savePath, asset.Container);
+                                }
+                                else
+                                {
+                                    exportPath = savePath;
+                                }
+                                break;
+                            case AssetGroupOption.BySource: //source file
+                                if (string.IsNullOrEmpty(asset.SourceFile.originalPath))
+                                {
+                                    exportPath = Path.Combine(savePath, asset.SourceFile.fileName + "_export");
+                                }
+                                else
+                                {
+                                    exportPath = Path.Combine(savePath, Path.GetFileName(asset.SourceFile.originalPath) + "_export", asset.SourceFile.fileName);
+                                }
+                                break;
+                            default:
+                                exportPath = savePath;
+                                break;
+                        }
+                        exportPath += Path.DirectorySeparatorChar;
+
                         bool exported = false;
                         switch (exportType)
                         {
@@ -691,49 +691,50 @@ namespace AssetStudio.GUI
                     //遍历一级子节点
                     foreach (GameObjectTreeNode j in node.Nodes)
                     {
-                        //收集所有子节点
-                        var gameObjects = new List<GameObject>();
-                        CollectNode(j, gameObjects);
-                        //跳过一些不需要导出的object
-                        if (gameObjects.All(x => x.m_SkinnedMeshRenderer == null && x.m_MeshFilter == null))
-                        {
-                            Progress.Report(++k, count);
-                            continue;
-                        }
-                        //处理非法文件名
-                        var filename = FixFileName(j.Text);
-                        if (node.Parent != null)
-                        {
-                            filename = Path.Combine(FixFileName(node.Parent.Text), filename);
-                        }
-                        //每个文件存放在单独的文件夹
-                        var targetPath = $"{savePath}{filename}{Path.DirectorySeparatorChar}";
-                        //重名文件处理
-                        for (int i = 1; ; i++)
-                        {
-                            if (Directory.Exists(targetPath))
-                            {
-                                targetPath = $"{savePath}{filename} ({i}){Path.DirectorySeparatorChar}";
-                            }
-                            else
-                            {
-                                break;
-                            }
-                        }
-                        Directory.CreateDirectory(targetPath);
-                        //导出FBX
-                        StatusStripUpdate($"Exporting {filename}.fbx");
                         try
                         {
+                            //收集所有子节点
+                            var gameObjects = new List<GameObject>();
+                            CollectNode(j, gameObjects);
+                            //跳过一些不需要导出的object
+                            if (gameObjects.All(x => x.m_SkinnedMeshRenderer == null && x.m_MeshFilter == null))
+                            {
+                                continue;
+                            }
+                            //处理非法文件名
+                            var filename = FixFileName(j.Text);
+                            if (node.Parent != null)
+                            {
+                                filename = Path.Combine(FixFileName(node.Parent.Text), filename);
+                            }
+                            //每个文件存放在单独的文件夹
+                            var targetPath = $"{savePath}{filename}{Path.DirectorySeparatorChar}";
+                            //重名文件处理
+                            for (int i = 1; ; i++)
+                            {
+                                if (Directory.Exists(targetPath))
+                                {
+                                    targetPath = $"{savePath}{filename} ({i}){Path.DirectorySeparatorChar}";
+                                }
+                                else
+                                {
+                                    break;
+                                }
+                            }
+                            Directory.CreateDirectory(targetPath);
+                            //导出FBX
+                            StatusStripUpdate($"Exporting {filename}.fbx");
                             ExportGameObject(j.gameObject, targetPath);
+                            StatusStripUpdate($"Finished exporting {filename}.fbx");
                         }
                         catch (Exception ex)
                         {
-                            Logger.Error($"Export GameObject:{j.Text} error\r\n{ex.Message}\r\n{ex.StackTrace}");
+                            Logger.Error($"Skipping GameObject:{j.Text} after export error\r\n{ex.Message}\r\n{ex.StackTrace}");
                         }
-
-                        Progress.Report(++k, count);
-                        StatusStripUpdate($"Finished exporting {filename}.fbx");
+                        finally
+                        {
+                            Progress.Report(++k, count);
+                        }
                     }
                 }
                 if (Properties.Settings.Default.openAfterExport)
@@ -871,26 +872,29 @@ namespace AssetStudio.GUI
                 {
                     var name = node.Text;
                     StatusStripUpdate($"Exporting {name}");
-                    var gameObjects = new List<GameObject>();
-                    GetSelectedParentNode(node.Nodes, gameObjects);
-                    if (gameObjects.Count > 0)
+                    try
                     {
-                        var subExportPath = exportPath + Path.Combine(node.Text, FixFileName(node.Text) + ".fbx");
-                        try
+                        var gameObjects = new List<GameObject>();
+                        GetSelectedParentNode(node.Nodes, gameObjects);
+                        if (gameObjects.Count > 0)
                         {
+                            var subExportPath = exportPath + Path.Combine(node.Text, FixFileName(node.Text) + ".fbx");
                             ExportGameObjectMerge(gameObjects, subExportPath, animationList);
-                            Progress.Report(++i, nodes.Count);
                             StatusStripUpdate($"Finished exporting {name}");
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            Logger.Error($"Export Model:{name} error\r\n{ex.Message}\r\n{ex.StackTrace}");
-                            StatusStripUpdate("Error in export");
+                            StatusStripUpdate("Empty node selected for export.");
                         }
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        StatusStripUpdate("Empty node selected for export.");
+                        Logger.Error($"Skipping Model:{name} after export error\r\n{ex.Message}\r\n{ex.StackTrace}");
+                        StatusStripUpdate("Error in export");
+                    }
+                    finally
+                    {
+                        Progress.Report(++i, nodes.Count);
                     }
                 }
                 if (Properties.Settings.Default.openAfterExport)

@@ -194,27 +194,44 @@ namespace AssetStudio.CLI
                     var fileList = new List<string>(toReadFile);
                     foreach (var file in fileList)
                     {
-                        assetsManager.LoadFiles(file);
-                        if (assetsManager.assetsFileList.Count > 0)
+                        try
                         {
-                            if (o.AssetExportType == ExportType.Scene)
+                            assetsManager.LoadFiles(file);
+                            if (assetsManager.assetsFileList.Count > 0)
                             {
-                                foreach (var assetsFile in assetsManager.assetsFileList)
+                                if (o.AssetExportType == ExportType.Scene)
                                 {
-                                    if (SceneExporter.HasSceneObjects(assetsFile))
+                                    foreach (var assetsFile in assetsManager.assetsFileList)
                                     {
-                                        Exporter.ExportSceneFile(assetsFile, o.Output.FullName);
+                                        if (SceneExporter.HasSceneObjects(assetsFile))
+                                        {
+                                            try
+                                            {
+                                                Exporter.ExportSceneFile(assetsFile, o.Output.FullName);
+                                            }
+                                            catch (Exception e)
+                                            {
+                                                Logger.Error($"Skipping scene export for {assetsFile.fileName}", e);
+                                            }
+                                        }
                                     }
                                 }
-                            }
-                            else
-                            {
-                                BuildAssetData(classTypeFilter, o.NameFilter, o.ContainerFilter, ref i);
-                                ExportAssets(o.Output.FullName, exportableAssets, o.GroupAssetsType, o.AssetExportType, o.ImageFormat);
+                                else
+                                {
+                                    BuildAssetData(classTypeFilter, o.NameFilter, o.ContainerFilter, ref i);
+                                    ExportAssets(o.Output.FullName, exportableAssets, o.GroupAssetsType, o.AssetExportType, o.ImageFormat);
+                                }
                             }
                         }
-                        exportableAssets.Clear();
-                        assetsManager.Clear();
+                        catch (Exception e)
+                        {
+                            Logger.Error($"Skipping file {file} after export error", e);
+                        }
+                        finally
+                        {
+                            exportableAssets.Clear();
+                            assetsManager.Clear();
+                        }
                     }
                 }
             }

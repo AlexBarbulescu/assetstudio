@@ -379,71 +379,81 @@ namespace AssetStudio.CLI
 
             Parallel.ForEach(toExportAssets, parallelOptions, asset =>
             {
-                string exportPath;
-                switch (assetGroupOption)
-                {
-                    case AssetGroupOption.ByType: //type name
-                        exportPath = Path.Combine(savePath, asset.TypeString);
-                        break;
-                    case AssetGroupOption.ByContainer: //container path
-                        if (!string.IsNullOrEmpty(asset.Container))
-                        {
-                            exportPath = Path.HasExtension(asset.Container) ? Path.Combine(savePath, Path.GetDirectoryName(asset.Container)) : Path.Combine(savePath, asset.Container);
-                        }
-                        else
-                        {
-                            exportPath = Path.Combine(savePath, asset.TypeString);
-                        }
-                        break;
-                    case AssetGroupOption.BySource: //source file
-                        if (string.IsNullOrEmpty(asset.SourceFile.originalPath))
-                        {
-                            exportPath = Path.Combine(savePath, asset.SourceFile.fileName + "_export");
-                        }
-                        else
-                        {
-                            exportPath = Path.Combine(savePath, Path.GetFileName(asset.SourceFile.originalPath) + "_export", asset.SourceFile.fileName);
-                        }
-                        break;
-                    default:
-                        exportPath = savePath;
-                        break;
-                }
-                exportPath += Path.DirectorySeparatorChar;
-
                 var current = Interlocked.Increment(ref currentIndex);
                 Logger.Info($"[{current}/{toExportCount}] Exporting {asset.TypeString}: {asset.Text}");
 
-                ExportLog.BeginAsset(exportPath);
                 var exported = false;
                 var status = ExportLogStatus.Failed;
 
                 try
                 {
-                    switch (exportType)
+                    string exportPath;
+                    switch (assetGroupOption)
                     {
-                        case ExportType.Raw:
-                            exported = ExportRawFile(asset, exportPath);
+                        case AssetGroupOption.ByType: //type name
+                            exportPath = Path.Combine(savePath, asset.TypeString);
                             break;
-                        case ExportType.Dump:
-                            exported = ExportDumpFile(asset, exportPath);
+                        case AssetGroupOption.ByContainer: //container path
+                            if (!string.IsNullOrEmpty(asset.Container))
+                            {
+                                exportPath = Path.HasExtension(asset.Container) ? Path.Combine(savePath, Path.GetDirectoryName(asset.Container)) : Path.Combine(savePath, asset.Container);
+                            }
+                            else
+                            {
+                                exportPath = Path.Combine(savePath, asset.TypeString);
+                            }
                             break;
-                        case ExportType.Convert:
-                            exported = ExportConvertFile(asset, exportPath, imageFormat);
+                        case AssetGroupOption.BySource: //source file
+                            if (string.IsNullOrEmpty(asset.SourceFile.originalPath))
+                            {
+                                exportPath = Path.Combine(savePath, asset.SourceFile.fileName + "_export");
+                            }
+                            else
+                            {
+                                exportPath = Path.Combine(savePath, Path.GetFileName(asset.SourceFile.originalPath) + "_export", asset.SourceFile.fileName);
+                            }
                             break;
-                        case ExportType.JSON:
-                            exported = ExportJSONFile(asset, exportPath);
+                        default:
+                            exportPath = savePath;
                             break;
+                    }
+                    exportPath += Path.DirectorySeparatorChar;
+
+                    ExportLog.BeginAsset(exportPath);
+
+                    try
+                    {
+                        switch (exportType)
+                        {
+                            case ExportType.Raw:
+                                exported = ExportRawFile(asset, exportPath);
+                                break;
+                            case ExportType.Dump:
+                                exported = ExportDumpFile(asset, exportPath);
+                                break;
+                            case ExportType.Convert:
+                                exported = ExportConvertFile(asset, exportPath, imageFormat);
+                                break;
+                            case ExportType.JSON:
+                                exported = ExportJSONFile(asset, exportPath);
+                                break;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        ExportLog.MarkError(ex);
+                        Logger.Error($"Export {asset.Type}:{asset.Text} error\r\n{ex.Message}\r\n{ex.StackTrace}");
+                    }
+                    finally
+                    {
+                        status = ExportLog.Commit(asset, exported);
                     }
                 }
                 catch (Exception ex)
                 {
                     ExportLog.MarkError(ex);
-                    Logger.Error($"Export {asset.Type}:{asset.Text} error\r\n{ex.Message}\r\n{ex.StackTrace}");
-                }
-                finally
-                {
-                    status = ExportLog.Commit(asset, exported);
+                    status = ExportLog.Commit(asset, false);
+                    Logger.Error($"Skipping {asset.Type}:{asset.Text} after export setup error\r\n{ex.Message}\r\n{ex.StackTrace}");
                 }
 
                 switch (status)

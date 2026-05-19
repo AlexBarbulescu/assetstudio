@@ -800,11 +800,18 @@ namespace AssetStudio.GUI
                     int total = 0;
                     foreach (var assetsFile in Studio.assetsManager.assetsFileList)
                     {
-                        if (SceneExporter.HasSceneObjects(assetsFile))
+                        try
                         {
-                            total++;
-                            if (Exporter.ExportSceneFile(assetsFile, savePath))
-                                exported++;
+                            if (SceneExporter.HasSceneObjects(assetsFile))
+                            {
+                                total++;
+                                if (Exporter.ExportSceneFile(assetsFile, savePath))
+                                    exported++;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Error($"Skipping scene export for {assetsFile.fileName}\r\n{ex.Message}\r\n{ex.StackTrace}");
                         }
                     }
 
